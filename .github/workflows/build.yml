@@ -26,17 +26,11 @@ jobs:
           mv *.img drona-os.img
 
       - name: 🧠 Inject Drona Brain (Run build.sh)
-        env:
-          # This tells the factory to use a more stable background connection
-          LIBGUESTFS_BACKEND: direct
         run: |
           chmod +x build.sh
-          # 1. Give our cloud user permission to use the computer's CPU emulator
-          sudo chmod 666 /dev/kvm || true
-          
-          # 2. Run virt-customize WITHOUT sudo! 
-          # (This stops the 'passt' network tool from panicking and crashing)
-          virt-customize -a drona-os.img --run build.sh
+          # We use sudo so it can read the kernel, but we inject the backend directly 
+          # into the command so sudo doesn't strip it away!
+          sudo LIBGUESTFS_BACKEND=direct virt-customize -a drona-os.img --run build.sh
 
       - name: 🗜️ Compress the Final Image
         run: |
