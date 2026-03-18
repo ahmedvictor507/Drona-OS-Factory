@@ -1,0 +1,43 @@
+name: Build Drona Master OS
+
+# This tells the factory to run ONLY when you manually click the "Run" button
+on:
+  workflow_dispatch:
+
+jobs:
+  build-os:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Download Factory Code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Install Image Build Tools (virt-customize & QEMU)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libguestfs-tools qemu-user-static
+
+      - name: 💿 Download Base OS (Ubuntu 20.04 for ROS Noetic)
+        run: |
+          # Downloading a clean, base Ubuntu image for Raspberry Pi
+          wget -O base-os.img.xz https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.5-preinstalled-server-armhf+raspi.img.xz
+          # Unzipping the image
+          unxz base-os.img.xz
+          mv *.img drona-os.img
+
+      - name: 🧠 Inject Drona Brain (Run build.sh)
+        run: |
+          chmod +x build.sh
+          # This is where the magic happens! virt-customize steps into the ARM image and runs your recipe.
+          sudo virt-customize -a drona-os.img --run build.sh
+
+      - name: 🗜️ Compress the Final Image
+        run: |
+          # Zipping it up so it's a small file to download
+          zip drona-master-image.zip drona-os.img
+
+      - name: 🚀 Publish the Final OS
+        uses: actions/upload-artifact@v4
+        with:
+          name: Drona-OS-Master
+          path: drona-master-image.zip
