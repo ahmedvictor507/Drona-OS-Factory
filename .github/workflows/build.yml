@@ -5,33 +5,29 @@ on:
 
 jobs:
   build-os:
-    # 🌟 THE MAGIC FIX: We use Ubuntu 22.04 to bypass the strict network security rules!
     runs-on: ubuntu-22.04
     
     steps:
       - name: 📥 Download Factory Code
         uses: actions/checkout@v4
 
-      - name: 🛠️ Install Image Build Tools (virt-customize & QEMU)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libguestfs-tools qemu-user-static
-
-      - name: 💿 Download Base OS (Ubuntu 20.04 for ROS Noetic)
-        run: |
-          wget -O base-os.img.xz https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.5-preinstalled-server-armhf+raspi.img.xz
-          unxz base-os.img.xz
-          mv *.img drona-os.img
-
-      - name: 🧠 Inject Drona Brain (Run build.sh)
-        run: |
-          chmod +x build.sh
-          # Because we are on Ubuntu 22.04, standard sudo works perfectly!
-          sudo virt-customize -a drona-os.img --run build.sh
+      - name: 🧠 Inject Drona Brain (ARM Emulator)
+        id: build_image
+        # This action is specifically built for Raspberry Pi images!
+        uses: pguyot/arm-runner-action@v2
+        with:
+          # It downloads and unzips the base OS for us automatically
+          base_image: https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.5-preinstalled-server-armhf+raspi.img.xz
+          # It adds 1GB of extra free space to the SD card image so we have room for our code
+          image_additional_mb: 1024
+          commands: |
+            chmod +x build.sh
+            bash ./build.sh
 
       - name: 🗜️ Compress the Final Image
         run: |
-          zip drona-master-image.zip drona-os.img
+          # The action hands us the exact file name of the finished image
+          zip drona-master-image.zip ${{ steps.build_image.outputs.image }}
 
       - name: 🚀 Publish the Final OS
         uses: actions/upload-artifact@v4
