@@ -11,14 +11,12 @@ jobs:
       - name: 📥 Download Factory Code
         uses: actions/checkout@v4
 
-      - name: 🧠 Inject Drona Brain (ARM Emulator)
+      - name: 🧠 Inject Drona Brain (ARM64 Emulator)
         id: build_image
-        # This action is specifically built for Raspberry Pi images!
         uses: pguyot/arm-runner-action@v2
         with:
-          # It downloads and unzips the base OS for us automatically
-          base_image: https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.5-preinstalled-server-armhf+raspi.img.xz
-          # It adds 1GB of extra free space to the SD card image so we have room for our code
+          # 🌟 THE FIX: We are now downloading the 64-bit (arm64) version of Ubuntu!
+          base_image: https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.5-preinstalled-server-arm64+raspi.img.xz
           image_additional_mb: 1024
           commands: |
             chmod +x build.sh
@@ -26,7 +24,6 @@ jobs:
 
       - name: 🗜️ Compress the Final Image
         run: |
-          # The action hands us the exact file name of the finished image
           zip drona-master-image.zip ${{ steps.build_image.outputs.image }}
 
       - name: 🚀 Publish the Final OS
